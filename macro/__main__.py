@@ -1,8 +1,8 @@
 import os
 import sys
-import micro.lexer
-import micro.parser
-import micro.nodes
+import macro.lexer
+import macro.parser
+import macro.nodes
 
 # macro
 # by las-r
@@ -12,7 +12,7 @@ TYPES = {"arr": list, "float": float, "int": int, "str": str}
 
 # inbuilt functions
 def ibtype(x):
-    if isinstance(x, micro.nodes.Function) or callable(x): return "func"
+    if isinstance(x, macro.nodes.Function) or callable(x): return "func"
     return {v: k for k, v in TYPES.items()}[type(x)]
     
 def ibconv(x, t):
@@ -39,8 +39,8 @@ def main():
     with open(file) as f:
         code = f.read()
         
-    tokens = micro.lexer.tokenize(code)
-    nodes = micro.parser.parse(tokens)
+    tokens = macro.lexer.tokenize(code)
+    nodes = macro.parser.parse(tokens)
     
     env = {
         "print": print,
