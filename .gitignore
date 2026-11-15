@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# micro
+*.mic
+!examples/*.mic
+!libraries/*.mic
+
+# macro
+*.mac
+!examples/*.mac
+!libraries/*.mac
