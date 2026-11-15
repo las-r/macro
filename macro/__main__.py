@@ -32,7 +32,7 @@ def ibdel(a, i):
 
 def main():
     if len(sys.argv) < 2:
-        print("usage: python -m micro <file.mic>")
+        print("usage: python -m macro <file.mic>")
         return
     
     file = sys.argv[1]
