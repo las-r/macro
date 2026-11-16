@@ -30,6 +30,12 @@ def ibdel(a, i):
     ac.pop(i)
     return ac
 
+def ibkeys(m):
+    return [*m]
+
+def ibvals(m):
+    return [*m.values()]
+
 def main():
     if len(sys.argv) < 2:
         print("usage: python -m macro <file.mic>")
@@ -49,7 +55,9 @@ def main():
         "conv": ibconv,
         "len": len,
         "add": ibadd,
-        "del": ibdel
+        "del": ibdel,
+        "keys": ibkeys,
+        "vals": ibvals,
     }
     for node in nodes:
         node.eval(env, [os.path.abspath(file)])
