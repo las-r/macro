@@ -1,3 +1,4 @@
+from copy import deepcopy
 import operator as op
 import os
 
@@ -202,7 +203,7 @@ class CallNode:
 
     def eval(self, env, paths=None):
         func = self.func.eval(env)
-        copy = lambda v: v.copy() if isinstance(v, list) else v
+        copy = lambda v: deepcopy(v) if type(v) in (list, dict) else v
         eargs = [a.eval(env) for a in self.args]
         if callable(func):
             return func(*[copy(a) for a in eargs])
