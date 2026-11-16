@@ -92,13 +92,20 @@ class BinaryOpNode:
             return BINOPS[self.op](a, b)
         raise Exception(f"Unknown binary operator: {self.op}")
     
-# array nodes
+# array and map nodes
 class ArrayNode:
     def __init__(self, items):
         self.items = items
         
     def eval(self, env, paths=None):
         return [i.eval(env) for i in self.items]
+    
+class MapNode:
+    def __init__(self, pairs):
+        self.pairs = pairs
+    
+    def eval(self, env, paths=None):
+        return {k.eval(env): v.eval(env) for k, v in self.pairs}
     
 class IndexNode:
     def __init__(self, arr, idx):
