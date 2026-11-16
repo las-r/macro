@@ -1,0 +1,17 @@
+// nums example for for loops
+// by las-r
+
+nums = [3, 8, 2, 9]
+
+total = 0
+for n, nums
+    total = total + n
+end
+print(total)
+
+for n, nums
+    if n > 5
+        print(n)
+        break
+    end
+end

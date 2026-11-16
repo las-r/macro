@@ -1,0 +1,11 @@
+// adder example for closures
+// by las-r
+
+add = @(a, b) return a + b end
+print(add(1, 2))
+
+func make_adder(n)
+    return @(x) return x + n end
+end
+add5 = make_adder(5)
+print(add5(10))

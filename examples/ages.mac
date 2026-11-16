@@ -1,0 +1,9 @@
+// ages example for maps
+// by las-r
+
+ages = {"ann" = 31, "bob" = 27}
+ages:"cy" = 45
+
+for name, keys(ages)
+    print(name + ": " + conv(ages:name, "str"))
+end
