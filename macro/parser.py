@@ -113,6 +113,7 @@ def parsestmt(tokens):
         tokens.expect_value("end")
         return WhileNode(cond, body)
     
+    # for statement
     if tokens.peek() == "for":
         tokens.eat()
         var = tokens.eat()
