@@ -19,6 +19,7 @@ BINOPS = {
     ">": lambda a, b: int(a > b),
     "<": lambda a, b: int(a < b),
 }
+TYPES = {list: "arr", float: "float", int: "int", str: "str"}
 
 # exceptions
 class Break(Exception):
@@ -157,6 +158,8 @@ class ForNode:
         
     def eval(self, env, paths=None):
         arr = self.arr.eval(env)
+        if not isinstance(arr, list):
+            raise TypeError(f"Cannot iterate over type: {TYPES[type(arr)]}")
         try:
             for v in arr:
                 env[self.var] = v
