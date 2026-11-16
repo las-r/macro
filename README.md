@@ -1,5 +1,5 @@
 # macro
-An extension of micro that adds for loops, maps, and closures.
+An extension of [micro](https://github.com/las-r/micro) that adds for loops, maps, and closures.
 
 ## Editor Support
 There exists support for macro in the following editors:
