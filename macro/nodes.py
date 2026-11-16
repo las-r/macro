@@ -190,16 +190,18 @@ class FunctionNode:
         self.body = body
     
     def eval(self, env, paths=None):
-        env[self.name] = Function(self.params, self.body, env)
+        func = Function(self.params, self.body, env)
+        if self.name is None:
+            return func
+        env[self.name] = func
         
 class CallNode:
-    def __init__(self, name, args):
-        self.name, self.args = name, args
+    def __init__(self, func, args):
+        self.func = func
+        self.args = args
 
     def eval(self, env, paths=None):
-        if self.name not in env:
-            raise Exception(f"Undefined function: {self.name}")
-        func = env[self.name]
+        func = self.func.eval(env)
         copy = lambda v: v.copy() if isinstance(v, list) else v
         eargs = [a.eval(env) for a in self.args]
         if callable(func):

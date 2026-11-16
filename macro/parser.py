@@ -20,14 +20,9 @@ def parseatom(tokens, index=True):
                 items.append(parseexpr(tokens))
         tokens.expect_value("]")
         node = ArrayNode(items)
-        while index and tokens.peek() == ":":
-            tokens.eat()
-            iexpr = parseatom(tokens, False)
-            node = IndexNode(node, iexpr)
-        return node
     
     # map literals
-    if tokens.peek() == "{":
+    elif tokens.peek() == "{":
         tokens.eat()
         pairs = []
         if tokens.peek() != "}":
@@ -43,39 +38,57 @@ def parseatom(tokens, index=True):
                 pairs.append((key, val))
         tokens.expect_value("}")
         node = MapNode(pairs)
-        while index and tokens.peek() == ":":
+    
+    # closures
+    elif tokens.peek() == "@":
+        tokens.eat()
+        params = []
+        if tokens.peek() == "(":
             tokens.eat()
-            iexpr = parseatom(tokens, False)
-            node = IndexNode(node, iexpr)
-        return node
+            if tokens.peek() != ")":
+                params.append(tokens.eat())
+                while tokens.peek() == ",":
+                    tokens.eat()
+                    params.append(tokens.eat())
+            tokens.expect_value(")")
+        body = []
+        while tokens.can_eat() and tokens.peek() != "end":
+            body.append(parsestmt(tokens))
+        tokens.expect_value("end")
+        node = FunctionNode(None, params, body)
 
     # unary ops
-    if tokens.peek() in [*UNOPS]: # pyright: ignore[reportUndefinedVariable]
+    elif tokens.peek() in [*UNOPS]: # pyright: ignore[reportUndefinedVariable]
         op = tokens.eat()
         a = parseatom(tokens, index)
         return UnaryOpNode(op, a)
 
     # parentheses
-    if tokens.peek() == "(":
+    elif tokens.peek() == "(":
         tokens.eat()
-        expr = parseexpr(tokens)
+        node = parseexpr(tokens)
         tokens.expect_value(")")
-        node = expr
-        while index and tokens.peek() == ":":
+
+    # literal or variable
+    else:
+        tok = tokens.eat()
+        c = tok[0]
+        if c == '"':
+            node = LiteralNode(re.sub(r"\\(.)", lambda m: ESCAPES.get(m.group(1), m.group(1)), tok[1:-1]))
+        elif c.isdigit():
+            node = LiteralNode(float(tok) if "." in tok else int(tok))
+        elif c.isalpha() or c == "_":
+            node = VariableNode(tok)
+        else:
+            raise SyntaxError(f"Unexpected token: {tok}")
+
+    # postfix operations: indexing (:) and calls (())
+    while tokens.can_eat() and ((index and tokens.peek() == ":") or tokens.peek() == "("):
+        if index and tokens.peek() == ":":
             tokens.eat()
             iexpr = parseatom(tokens, False)
             node = IndexNode(node, iexpr)
-        return node
-
-    # literal, variable, and function call
-    tok = tokens.eat()
-    c = tok[0]
-    if c == '"':
-        node = LiteralNode(re.sub(r"\\(.)", lambda m: ESCAPES.get(m.group(1), m.group(1)), tok[1:-1]))
-    elif c.isdigit():
-        node = LiteralNode(float(tok) if "." in tok else int(tok))
-    elif c.isalpha() or c == "_":
-        if tokens.peek() == "(":
+        elif tokens.peek() == "(":
             tokens.eat()
             args = []
             if tokens.peek() != ")":
@@ -84,17 +97,7 @@ def parseatom(tokens, index=True):
                     tokens.eat()
                     args.append(parseexpr(tokens))
             tokens.expect_value(")")
-            node = CallNode(tok, args)
-        else:
-            node = VariableNode(tok)
-    else:
-        raise SyntaxError(f"Unexpected token: {tok}")
-
-    # array indexing
-    while index and tokens.peek() == ":":
-        tokens.eat()
-        iexpr = parseatom(tokens, False)
-        node = IndexNode(node, iexpr)
+            node = CallNode(node, args)
 
     return node
 
@@ -175,7 +178,7 @@ def parsestmt(tokens):
     # return statement
     if tokens.peek() == "return":
         tokens.eat()
-        if tokens.can_eat() and tokens.peek() not in ["end", "if", "else", "while", "func"]:
+        if tokens.can_eat() and tokens.peek() not in ["end", "if", "else", "while", "for", "func"]:
             expr = parseexpr(tokens)
         else:
             expr = None
