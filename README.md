@@ -1,6 +1,10 @@
 # macro
 An extension of micro that adds for loops, maps, and closures.
 
+## Editor Support
+There exists support for macro in the following editors:
+- [VSCode](https://github.com/las-r/macro-vscode)
+
 ## Usage
 ```
 python -m macro <file.mic>
