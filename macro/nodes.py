@@ -19,7 +19,7 @@ BINOPS = {
     ">": lambda a, b: int(a > b),
     "<": lambda a, b: int(a < b),
 }
-TYPES = {list: "arr", float: "float", int: "int", str: "str"}
+TYPES = {dict: "map", list: "arr", float: "float", int: "int", str: "str"}
 
 # exceptions
 class Break(Exception):

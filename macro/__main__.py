@@ -8,7 +8,7 @@ import macro.nodes
 # by las-r
 
 # constants
-TYPES = {"arr": list, "float": float, "int": int, "str": str}
+TYPES = {"map": dict, "arr": list, "float": float, "int": int, "str": str}
 
 # inbuilt functions
 def ibtype(x):
