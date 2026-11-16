@@ -25,6 +25,29 @@ def parseatom(tokens, index=True):
             iexpr = parseatom(tokens, False)
             node = IndexNode(node, iexpr)
         return node
+    
+    # map literals
+    if tokens.peek() == "{":
+        tokens.eat()
+        pairs = []
+        if tokens.peek() != "}":
+            key = parseexpr(tokens)
+            tokens.expect_value("=")
+            val = parseexpr(tokens)
+            pairs.append((key, val))
+            while tokens.peek() == ",":
+                tokens.eat()
+                key = parseexpr(tokens)
+                tokens.expect_value("=")
+                val = parseexpr(tokens)
+                pairs.append((key, val))
+        tokens.expect_value("}")
+        node = MapNode(pairs)
+        while index and tokens.peek() == ":":
+            tokens.eat()
+            iexpr = parseatom(tokens, False)
+            node = IndexNode(node, iexpr)
+        return node
 
     # unary ops
     if tokens.peek() in [*UNOPS]: # pyright: ignore[reportUndefinedVariable]
