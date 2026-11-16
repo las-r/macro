@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "macro"
+version = "1.0.0"
+readme = "README.md"
+requires-python = ">=3.7"
+
+[project.scripts]
+micro = "macro.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["macro*"]
