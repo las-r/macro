@@ -5,9 +5,10 @@ An extension of [micro](https://github.com/las-r/micro) that adds for loops, map
 There exists support for macro in the following editors:
 - [VSCode](https://github.com/las-r/macro-vscode)
 
-## Usage
+## Getting Started
 ```
-python -m macro <file.mic>
+pip install git+https://github.com/las-r/macro
+macro <file.mic>
 ```
 
 ## Additions
