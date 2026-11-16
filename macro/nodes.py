@@ -149,6 +149,22 @@ class WhileNode:
         except Break:
             pass
         
+class ForNode:
+    def __init__(self, var, arr, body):
+        self.var = var
+        self.arr = arr
+        self.body = body
+        
+    def eval(self, env, paths=None):
+        arr = self.arr.eval(env)
+        try:
+            for v in arr:
+                env[self.var] = v
+                for node in self.body:
+                    node.eval(env, paths)
+        except Break:
+            pass
+        
 class BreakNode:
     def __init__(self):
         pass
