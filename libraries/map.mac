@@ -1,0 +1,39 @@
+// macro map library example
+// by las-r
+
+func mpairs(m)
+    k = keys(m)
+    v = vals(m)
+    pairs = []
+    i = 0
+    while i < len(k)
+        pairs = add(pairs, len(pairs), [k:i, v:i])
+        i = i + 1
+    end
+    return pairs
+end
+
+func mhas(m, key)
+    for k, keys(m)
+        if k == key
+            return 1
+        end
+    end
+    return 0
+end
+
+func mget(m, key, default)
+    if mhas(m, key)
+        return m:key
+    end
+    return default
+end
+
+func mflip(m)
+    out = {}
+    for k, keys(m)
+        v = m:k
+        out:v = k
+    end
+    return out
+end
