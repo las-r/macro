@@ -28,28 +28,24 @@ func slice(a, s, e)
 end
 
 func concat(a, b)
-    i = 0
-    while i < len(b)
-        a = add(a, len(a), b:i)
-        i = i + 1
+    for x, b
+        a = add(a, len(a), x)
     end
     return a
 end
 
 func rev(a)
     r = []
-    i = len(a) - 1
-    while i >= 0
-        r = add(r, len(r), a:i)
-        i = i - 1
+    for x, a
+        r = add(r, 0, x)
     end
     return r
 end
 
 func indexof(a, x)
     i = 0
-    while i < len(a)
-        if a:i == x
+    for y, a
+        if y == x
             return i
         end
         i = i + 1
@@ -63,44 +59,39 @@ end
 
 func sum(a)
     r = 0
-    i = 0
-    while i < len(a)
-        r = r + a:i
-        i = i + 1
+    for x, a
+        r = r + x
     end
     return r
 end
 
 func amin(a)
     r = a:0
-    i = 1
-    while i < len(a)
-        if a:i < r
-            r = a:i
+    for x, a
+        if x < r
+            r = x
         end
-        i = i + 1
     end
     return r
 end
 
 func amax(a)
     r = a:0
-    i = 1
-    while i < len(a)
-        if a:i > r
-            r = a:i
+    for x, a
+        if x > r
+            r = x
         end
-        i = i + 1
     end
     return r
 end
 
-func sort(a)
+func sortf(a, f)
     i = 1
     while i < len(a)
         x = a:i
+        k = f(x)
         j = i - 1
-        while (j >= 0) && (a:j > x)
+        while (j >= 0) && (f(a:j) > k)
             a:(j + 1) = a:j
             j = j - 1
         end
@@ -110,33 +101,31 @@ func sort(a)
     return a
 end
 
+func sort(a)
+    return sortf(a, @(x) return x end)
+end
+
 func map(a, f)
     r = []
-    i = 0
-    while i < len(a)
-        r = add(r, len(r), f(a:i))
-        i = i + 1
+    for x, a
+        r = add(r, len(r), f(x))
     end
     return r
 end
 
 func filter(a, f)
     r = []
-    i = 0
-    while i < len(a)
-        if f(a:i)
-            r = add(r, len(r), a:i)
+    for x, a
+        if f(x)
+            r = add(r, len(r), x)
         end
-        i = i + 1
     end
     return r
 end
 
 func reduce(a, f, x)
-    i = 0
-    while i < len(a)
-        x = f(x, a:i)
-        i = i + 1
+    for y, a
+        x = f(x, y)
     end
     return x
 end

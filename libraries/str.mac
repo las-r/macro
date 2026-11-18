@@ -20,6 +20,14 @@ func substr(s, a, b)
     return r
 end
 
+func mapchars(s, f)
+    r = ""
+    for c, conv(s, "arr")
+        r = r + f(c)
+    end
+    return r
+end
+
 func find(s, t)
     i = 0
     n = len(s) - len(t)
@@ -55,42 +63,30 @@ end
 
 func reverse(s)
     r = ""
-    i = len(s) - 1
-    while i >= 0
-        r = r + s:i
-        i = i - 1
+    for c, conv(s, "int")
+        r = c + r
     end
     return r
 end
 
 func upper(s)
-    r = ""
-    i = 0
-    while i < len(s)
-        j = find(LOWER, s:i)
+    return mapchars(s, @(c)
+        j = find(LOWER, c)
         if j < 0
-            r = r + s:i
-        else
-            r = r + UPPER:j
+            return c
         end
-        i = i + 1
-    end
-    return r
+        return UPPER:j
+    end)
 end
 
 func lower(s)
-    r = ""
-    i = 0
-    while i < len(s)
-        j = find(UPPER, s:i)
+    return mapchars(s, @(c)
+        j = find(UPPER, c)
         if j < 0
-            r = r + s:i
-        else
-            r = r + LOWER:j
+            return c
         end
-        i = i + 1
-    end
-    return r
+        return LOWER:j
+    end)
 end
 
 func trim(s)
@@ -106,15 +102,10 @@ func trim(s)
 end
 
 func split(s, sep)
-    r = []
     if len(sep) == 0
-        i = 0
-        while i < len(s)
-            r = add(r, len(r), s:i)
-            i = i + 1
-        end
-        return r
+        return conv(s, "int")
     end
+    r = []
     start = 0
     i = 0
     while i <= (len(s) - len(sep))
@@ -132,11 +123,11 @@ end
 func join(a, sep)
     r = ""
     i = 0
-    while i < len(a)
+    for x, a
         if i > 0
             r = r + sep
         end
-        r = r + conv(a:i, "str")
+        r = r + conv(x, "str")
         i = i + 1
     end
     return r
