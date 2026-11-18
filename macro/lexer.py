@@ -1,4 +1,6 @@
+import os
 import re
+from macro.errors import *
 
 # macro lexer
 # by las-r
@@ -9,17 +11,28 @@ REGEX = re.compile(r"""
     (?P<NUMBER>   \d+(?:\.\d+)?) |
     (?P<STRING>   "(?:\\.|[^"\\])*") |
     (?P<KEYWORD>  \b(end|if|else[ \t]+if|else|while|for|func|break|return|import)\b) |
-    (?P<OPER>     ==|<=|>=|&&|\|\||[+\-*/%<>~&\|^()!:=,\[\]{}@]) |
+    (?P<OPER>     ==|!=|<=|>=|&&|\|\||[+\-*/%<>~&\|^()!:=,\[\]{}@]) |
     (?P<IDENT>    [a-zA-Z_]\w*) |
     (?P<SKIP>     [ \t\r\n]+) |
     (?P<MISMATCH> .)
 """, re.VERBOSE)
 
-# tokens class
+# tokens classes
+class Token(str): line = 0
 class Tokens:
-    def __init__(self, tokens):
+    def __init__(self, tokens, path):
         self.tokens = tokens
+        self.path = path
         self.i = 0
+
+    def line(self):
+        if not self.tokens: return 1
+        return self.tokens[min(self.i, len(self.tokens) - 1)].line
+
+    def error(self, msg):
+        e = MacroSyntaxError(msg)
+        e.add_frame(self.path, self.line())
+        return e
         
     def can_eat(self, inc=1):
         return self.i + inc <= len(self.tokens)
@@ -35,20 +48,25 @@ class Tokens:
     
     def expect_value(self, value):
         if self.peek() != value:
-            raise SyntaxError(f"Expected {value}, got {self.peek()}")
+            raise self.error(f"Expected {value}, got {self.peek()}")
         self.eat()
     
 # tokenizer
-def tokenize(code):
-    tokens = []
+def tokenize(code, path):
+    path = os.path.abspath(path)
+    SOURCES[path] = code.splitlines()
+    tokens, line = [], 1
     for match in REGEX.finditer(code):
-        typ = match.lastgroup
-        val = match.group()
-        if typ in ("SKIP", "COMMENT"):
-            continue
-        elif typ == "MISMATCH":
-            raise SyntaxError(f"Unexpected token: {val}")
-        elif typ == "KEYWORD" and val.startswith("else") and val != "else":
-            val = "else if"
-        tokens.append(val)
-    return Tokens(tokens)
+        typ, val = match.lastgroup, match.group()
+        if typ == "MISMATCH":
+            e = MacroSyntaxError(f"Unexpected token: {val}")
+            e.add_frame(path, line)
+            raise e
+        if typ not in ("SKIP", "COMMENT"):
+            if typ == "KEYWORD" and val.startswith("else") and val != "else":
+                val = "else if"
+            t = Token(val)
+            t.line = line
+            tokens.append(t)
+        line += val.count("\n")
+    return Tokens(tokens, path)

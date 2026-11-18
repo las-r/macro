@@ -3,6 +3,7 @@ import sys
 import macro.lexer
 import macro.parser
 import macro.nodes
+import macro.errors
 
 # macro
 # by las-r
@@ -12,24 +13,19 @@ TYPES = {"map": dict, "arr": list, "float": float, "int": int, "str": str}
 TYPENAMES = {v: k for k, v in TYPES.items()}
 ANY = object()
 
-# typename helper
-def typename(x):
-    if isinstance(x, macro.nodes.Function) or callable(x): return "func"
-    return TYPENAMES.get(type(x), type(x).__name__)
-
 # builtin decorator
 def builtin(*sig):
     def deco(fn):
         def wrapper(*args):
             if len(args) != len(sig):
-                raise Exception(f"{fn.__name__}() takes {len(sig)} argument(s), got {len(args)}")
+                raise macro.errors.MacroArgumentError(f"{fn.__name__}() takes {len(sig)} argument(s), got {len(args)}")
             for i, (a, t) in enumerate(zip(args, sig)):
                 if t is ANY:
                     continue
                 ts = t if isinstance(t, tuple) else (t,)
                 if isinstance(a, bool) or not isinstance(a, ts):
                     names = "/".join(TYPENAMES[x] for x in ts)
-                    raise Exception(f"{fn.__name__}() argument {i + 1} must be {names}, got {typename(a)}")
+                    raise macro.errors.MacroTypeError(f"{fn.__name__}() argument {i + 1} must be {names}, got {macro.nodes.typename(a)}")
             return fn(*args)
         wrapper.__name__ = fn.__name__
         return wrapper
@@ -46,7 +42,7 @@ def ibinput(p):
 
 @builtin(ANY)
 def ibtype(x):
-    return typename(x)
+    return macro.nodes.typename(x)
 
 @builtin(ANY, str)
 def ibconv(x, t):
@@ -86,23 +82,26 @@ def main():
     file = sys.argv[1]
     with open(file) as f:
         code = f.read()
-        
-    tokens = macro.lexer.tokenize(code)
-    nodes = macro.parser.parse(tokens)
-    
-    env = {
-        "print": ibprint,
-        "input": ibinput,
-        "type": ibtype,
-        "conv": ibconv,
-        "len": iblen,
-        "add": ibadd,
-        "del": ibdel,
-        "keys": ibkeys,
-        "vals": ibvals,
-    }
-    for node in nodes:
-        node.eval(env, [os.path.abspath(file)])
+
+    try:
+        tokens = macro.lexer.tokenize(code, file)
+        nodes = macro.parser.parse(tokens)
+        env = {
+            "print": ibprint,
+            "input": ibinput,
+            "type": ibtype,
+            "conv": ibconv,
+            "len": iblen,
+            "add": ibadd,
+            "del": ibdel,
+            "keys": ibkeys,
+            "vals": ibvals,
+        }
+        for node in nodes:
+            macro.nodes.run(node, env, [os.path.abspath(file)])
+    except macro.errors.MacroError as e:
+        print(e.format(), file=sys.stderr)
+        sys.exit(1)
         
 if __name__ == "__main__":
     main()

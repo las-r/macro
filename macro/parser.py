@@ -7,6 +7,15 @@ from macro.nodes import *
 # constant lists
 ESCAPES = {"n": "\n", "t": "\t", "r": "\r"}
 
+# tagged decorator
+def tagged(fn):
+    def wrapper(tokens):
+        line = tokens.line()
+        node = fn(tokens)
+        node.file, node.line = tokens.path, line
+        return node
+    return wrapper
+
 # atom parser
 def parseatom(tokens, index=True):
     # array literals
@@ -80,7 +89,7 @@ def parseatom(tokens, index=True):
         elif c.isalpha() or c == "_":
             node = VariableNode(tok)
         else:
-            raise SyntaxError(f"Unexpected token: {tok}")
+            raise tokens.error(f"Unexpected token: {tok}")
 
     # postfix operations: indexing (:) and calls (())
     while tokens.can_eat() and ((index and tokens.peek() == ":") or tokens.peek() == "("):
@@ -111,6 +120,7 @@ def parseexpr(tokens):
     return a
 
 # statement parser
+@tagged
 def parsestmt(tokens):
     # if statement
     if tokens.peek() in ("if", "else if"):
@@ -199,14 +209,21 @@ def parsestmt(tokens):
             return AssignNode(lhs.name, rhs)
         if isinstance(lhs, IndexNode):
             return IndexAssignNode(lhs.arr, lhs.idx, rhs)
-        raise SyntaxError("Invalid assignment target")
+        raise tokens.error("Invalid assignment target")
     
     # fallback expression
     return lhs
+
+# error parser
+def parseerror(tokens):
+    line = tokens.line()
+    node = parsestmt(tokens)
+    node.file, node.line = tokens.path, line
+    return node
 
 # parser
 def parse(tokens):
     nodes = []
     while tokens.can_eat():
-        nodes.append(parsestmt(tokens))
+        nodes.append(parseerror(tokens))
     return nodes

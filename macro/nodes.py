@@ -1,18 +1,19 @@
-from copy import deepcopy
-import operator as op
+import operator as oper
 import os
+from copy import deepcopy
+from macro.errors import *
 
 # macro nodes
 # by las-r
 
 # constants
 UNOPS = {
-    "-": op.neg, "~": op.inv,
+    "-": oper.neg, "~": oper.inv,
     "!": lambda a: int(a == 0)
 }
 BINOPS = {
-    "+": op.add, "-": op.sub, "*": op.mul, "/": op.truediv,
-    "%": op.mod, "&": op.and_, "|": op.or_, "^": op.xor,
+    "+": oper.add, "-": oper.sub, "*": oper.mul, "/": oper.truediv,
+    "%": oper.mod, "&": oper.and_, "|": oper.or_, "^": oper.xor,
     "==": lambda a, b: int(a == b),
     "!=": lambda a, b: int(a != b),
     ">=": lambda a, b: int(a >= b),
@@ -20,7 +21,27 @@ BINOPS = {
     ">": lambda a, b: int(a > b),
     "<": lambda a, b: int(a < b),
 }
-TYPES = {dict: "map", list: "arr", float: "float", int: "int", str: "str"}
+TYPENAMES = {dict: "map", list: "arr", float: "float", int: "int", str: "str"}
+
+# typename helper
+def typename(x):
+    if isinstance(x, Function) or callable(x): return "func"
+    return TYPENAMES.get(type(x), type(x).__name__)
+
+# node runner helper
+def run(node, env, paths=None):
+    try:
+        return node.eval(env, paths)
+    except (Break, Return):
+        raise
+    except MacroError as e:
+        if not e.stamped:
+            e.add_frame(node.file, node.line)
+        raise
+    except Exception as e:
+        err = PYMAP.get(type(e), MacroError)(str(e))
+        err.add_frame(node.file, node.line)
+        raise err from e
 
 # exceptions
 class Break(Exception):
@@ -53,7 +74,7 @@ class VariableNode:
     def eval(self, env, paths=None):
         if self.name in env:
             return env[self.name]
-        raise Exception(f"Undefined variable: {self.name}")
+        raise MacroEnvironmentError(f"Undefined variable: {self.name}")
 
 class AssignNode:
     def __init__(self, name, expr):
@@ -75,8 +96,11 @@ class UnaryOpNode:
     def eval(self, env, paths=None):
         a = self.a.eval(env)
         if self.op in UNOPS:
-            return UNOPS[self.op](a)
-        raise Exception(f"Unknown unary operator: {self.op}")
+            try:
+                return UNOPS[self.op](a)
+            except TypeError:
+                raise MacroTypeError(f"Cannot apply '{self.op}' to {typename(a)}") from None
+        raise MacroError(f"Unknown unary operator: {self.op}")
     
 class BinaryOpNode:
     def __init__(self, a, op, b):
@@ -90,8 +114,11 @@ class BinaryOpNode:
         if self.op == "||": return int(a != 0 or self.b.eval(env) != 0)
         b = self.b.eval(env)
         if self.op in BINOPS:
-            return BINOPS[self.op](a, b)
-        raise Exception(f"Unknown binary operator: {self.op}")
+            try:
+                return BINOPS[self.op](a, b)
+            except TypeError:
+                raise MacroTypeError(f"Cannot apply '{self.op}' to {typename(a)} and {typename(b)}") from None
+        raise MacroError(f"Unknown binary operator: {self.op}")
     
 # array and map nodes
 class ArrayNode:
@@ -140,10 +167,10 @@ class IfNode:
     def eval(self, env, paths=None):
         if self.cond.eval(env) != 0:
             for node in self.body:
-                node.eval(env, paths)
+                run(node, env, paths)
         else:
             for node in self.ebody:
-                node.eval(env, paths)
+                run(node, env, paths)
                 
 class WhileNode:
     def __init__(self, cond, body):
@@ -154,7 +181,7 @@ class WhileNode:
         try:
             while self.cond.eval(env) != 0:
                 for node in self.body:
-                    node.eval(env, paths)
+                    run(node, env, paths)
         except Break:
             pass
         
@@ -167,12 +194,12 @@ class ForNode:
     def eval(self, env, paths=None):
         arr = self.arr.eval(env)
         if not isinstance(arr, list):
-            raise TypeError(f"Cannot iterate over type: {TYPES[type(arr)]}")
+            raise MacroTypeError(f"Cannot iterate over type: {typename(arr)}")
         try:
             for v in arr:
                 env[self.var] = v
                 for node in self.body:
-                    node.eval(env, paths)
+                    run(node, env, paths)
         except Break:
             pass
         
@@ -209,15 +236,18 @@ class CallNode:
             return func(*[copy(a) for a in eargs])
         if isinstance(func, Function):
             if len(self.args) != len(func.params):
-                raise Exception(f"Argument mismatch for {self.name}")
+                raise MacroArgumentError(f"Expected {len(func.params)} argument(s), got {len(self.args)}")
             lenv = {k: copy(v) for k, v in func.env.items()} | {p: copy(v) for p, v in zip(func.params, eargs)}
             try:
-                for node in func.body: 
-                    node.eval(lenv)
+                for node in func.body:
+                    run(node, lenv)
             except Return as e:
                 return e.value
+            except MacroError as e:
+                e.stamped = False
+                raise
             return
-        raise Exception(f"'{self.name}' is not a callable function")
+        raise MacroTypeError(f"{typename(func)} is not callable")
     
 class ReturnNode:
     def __init__(self, expr):
@@ -234,16 +264,23 @@ class ImportNode:
     def eval(self, env, paths):
         from . import lexer
         from . import parser
-        fpath = os.path.abspath(
-            os.path.join(os.path.dirname(paths[-1]), self.path.eval(env))
-        )
+        name = self.path.eval(env)
+        fpath = os.path.abspath(os.path.join(os.path.dirname(self.file), name))
         if fpath in paths:
-            raise Exception(f"Circular import: {fpath}")
+            raise MacroImportError(f"Circular import: {fpath}")
         paths.append(fpath)
-        with open(fpath) as f:
-            code = f.read()
-        tokens = lexer.tokenize(code)
-        nodes = parser.parse(tokens)
-        for node in nodes:
-            node.eval(env, paths)
-        paths.pop()
+        try:
+            try:
+                with open(fpath) as f:
+                    code = f.read()
+            except OSError:
+                raise MacroImportError(f"Cannot open file: {name}") from None
+            tokens = lexer.tokenize(code, fpath)
+            nodes = parser.parse(tokens)
+            for node in nodes:
+                run(node, env, paths)
+        except MacroError as e:
+            e.stamped = False
+            raise
+        finally:
+            paths.pop()
