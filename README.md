@@ -1,6 +1,29 @@
 # macro
 An extension of [micro](https://github.com/las-r/micro) that adds for loops, maps, and closures.
 
+```lua
+filter = @(a, f)
+    out = []
+    for v, a
+        if f(v)
+            out = add(out, len(out), v)
+        end
+    end
+    return out
+end
+
+makeFilter = @(f)
+    return @(a) return filter(a, f) end
+end
+
+evens = makeFilter(@(n) return n % 2 == 0 end)
+
+x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+y = evens(x)
+
+print(y)
+```
+
 ## Editor Support
 There exists support for macro in the following editors:
 - [VSCode](https://github.com/las-r/macro-vscode)
